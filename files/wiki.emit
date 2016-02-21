@@ -1,0 +1,6 @@
+Healthy	normal	0.5
+Healthy	cold	0.4
+Healthy	dizzy	0.1
+Fever	normal	0.1
+Fever	cold	0.3
+Fever	dizzy	0.6

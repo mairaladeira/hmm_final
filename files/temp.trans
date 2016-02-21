@@ -1,0 +1,9 @@
+INIT
+INIT	hot	0.8
+INIT	cold	0.2
+hot	hot	0.6
+hot	cold	0.3
+hot	FINAL	0.1
+cold	hot	0.4
+cold	cold	0.5
+cold	FINAL	0.1

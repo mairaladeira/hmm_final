@@ -1,0 +1,7 @@
+INIT
+INIT	s1	0.85
+INIT	s2	0.15
+s1	s1	0.3
+s1	s2	0.7
+s2	s1	0.1
+s2	s2	0.9

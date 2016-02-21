@@ -1,0 +1,7 @@
+INIT
+INIT	a	0.5
+INIT	b	0.5
+a	a	0.1
+a	b	0.9
+b	a	0.3
+b	b	0.7

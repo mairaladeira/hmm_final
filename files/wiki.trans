@@ -1,0 +1,9 @@
+INIT
+INIT	Healthy	0.6
+INIT	Fever	0.4
+Healthy	Healthy	0.69
+Healthy	Fever	0.3
+Healthy	E	0.01
+Fever	Healthy	0.4
+Fever	Fever	0.59
+Fever	E	0.01
