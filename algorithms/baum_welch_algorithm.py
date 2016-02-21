@@ -68,11 +68,29 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
                 gamma = (self.alphas[last_elem][s]*self.betas[last_elem][s])/const
                 if s not in self.sum_Gammas_end:
                     self.sum_Gammas_end[s] = 0
-                    self.sum_observed_Gammas_end[s] = {}
+                    self.sum_observed_Gammas[s] = {}
                 self.sum_Gammas_end[s] += gamma
                 if obs not in self.sum_observed_Gammas_end[s]:
                     self.sum_observed_Gammas_end[s][obs] = 0
                 self.sum_observed_Gammas_end[s][obs] += gamma
+
+    def normalize_params(self, n_a, n_b, n_pi):
+        const_pi = 0
+        for s in self.states:
+            const_a = 0
+            const_b = 0
+            const_pi += n_pi[s]
+            for s2 in n_a[s]:
+                const_a += n_a[s][s2]
+            for obs in n_b[s]:
+                const_b += n_b[s][obs]
+            for s2 in n_a[s]:
+                n_a[s][s2] /= const_a
+            for obs in n_b[s]:
+                n_b[s][obs] /= const_b
+        for s in self.states:
+            n_pi[s] /= const_pi
+        return n_a, n_b, n_pi
 
     def update_params(self, possible_obs):
         n_pi = {}
@@ -96,23 +114,23 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
                 del n_a[s]
             if n_b[s] == {}:
                 del n_b[s]
+        n_a, n_b, n_pi = self.normalize_params(n_a, n_b, n_pi)
         return n_pi, n_a, n_b
 
     def baum_welch(self):
-        cur_a = self.A
-        cur_b = self.B
-        cur_pi = self.pi
-        i = 0
+        i = 1
         possible_obs = self.get_possible_obs_list()
+        self.set_vars()
+        cur_pi, cur_a, cur_b = self.update_params(possible_obs)
         while (cur_a != self.A or cur_b != self.B or cur_pi != self.pi) and i < self.iterations:
-            if i != 0:
-                self.A = cur_a
-                self.B = cur_b
-                self.pi = cur_pi
-                ForwardBackwardAlgorithm.forward(self)
-                ForwardBackwardAlgorithm.backward(self)
+            self.A = cur_a
+            self.B = cur_b
+            self.pi = cur_pi
+            ForwardBackwardAlgorithm.forward(self)
+            ForwardBackwardAlgorithm.backward(self)
             self.set_vars()
             cur_pi, cur_a, cur_b = self.update_params(possible_obs)
+            i += 1
         self.A = cur_a
         self.B = cur_b
         self.pi = cur_pi
@@ -128,8 +146,8 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
 
     def print_bw(self):
         print('\tResults from Baum-Welch algorithm:')
-        print('\t'+str(self.pi))
         print('\tNew initialization probabilities:')
+        print('\t'+str(self.pi))
         print('\tNew transition probabilities:')
         print('\t'+str(self.A))
         print('\tNew emission probabilities:')
