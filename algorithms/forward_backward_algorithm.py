@@ -57,7 +57,7 @@ class ForwardBackwardAlgorithm(Algorithm):
         prev_beta = {}
         const = self.constants[::-1]
         for s in self.states:
-            prev_beta[s] = 1*const[0]
+            prev_beta[s] = 1/const[0]
         betas.append(prev_beta)
         for obs in reversed(self.obs):
             cur_beta = {}
@@ -95,6 +95,8 @@ class ForwardBackwardAlgorithm(Algorithm):
     def print_fw(self):
         print('------------------------------------------')
         print('\tResults from Forward-Backward algorithm:')
+        print('\tAlphas:'+str(self.alphas)+'\t')
+        print('\tBetas:'+str(self.betas)+'\t')
         print('\tObservation:'+str(self.obs)+'\t')
         print('\tP(Observation):'+str(self.prob_obs))
         print('\t--------------')
