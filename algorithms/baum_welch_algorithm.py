@@ -79,17 +79,21 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
         for s in self.states:
             const_a = 0
             const_b = 0
-            const_pi += n_pi[s]
-            for s2 in n_a[s]:
-                const_a += n_a[s][s2]
-            for obs in n_b[s]:
-                const_b += n_b[s][obs]
-            for s2 in n_a[s]:
-                n_a[s][s2] /= const_a
-            for obs in n_b[s]:
-                n_b[s][obs] /= const_b
+            if s in n_pi:
+                const_pi += n_pi[s]
+            if s in n_a:
+                for s2 in n_a[s]:
+                    const_a += n_a[s][s2]
+                for s2 in n_a[s]:
+                    n_a[s][s2] /= const_a
+            if s in n_b:
+                for obs in n_b[s]:
+                    const_b += n_b[s][obs]
+                for obs in n_b[s]:
+                    n_b[s][obs] /= const_b
         for s in self.states:
-            n_pi[s] /= const_pi
+            if s in n_pi:
+                n_pi[s] /= const_pi
         return n_a, n_b, n_pi
 
     def update_params(self, possible_obs):
