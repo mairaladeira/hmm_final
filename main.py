@@ -3,7 +3,7 @@ import sys
 from data_structures import *
 from algorithms.baum_welch_algorithm import *
 
-__author__ = 'Maira'
+__author__ = 'Gabriela and Maira'
 
 
 def manual_input():

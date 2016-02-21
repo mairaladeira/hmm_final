@@ -1,5 +1,5 @@
 from algorithms.viterbi_algorithm import *
-__author__ = 'Maira'
+__author__ = 'Gabriela and Maira'
 
 
 class BaumWelchAlgorithm(ViterbiAlgorithm):

@@ -1,4 +1,4 @@
-__author__ = 'Maira'
+__author__ = 'Gabriela and Maira'
 
 
 class Algorithm(object):
