@@ -70,7 +70,7 @@ class ForwardBackwardAlgorithm(Algorithm):
                                         self.get_emission_prob(s2, obs)
                         cur_beta[s] += val
                 for s in cur_beta:
-                    cur_beta[s] *= const[index]
+                    cur_beta[s] /= const[index]
                 prev_beta = cur_beta.copy()
                 betas.append(cur_beta)
                 index += 1
