@@ -37,7 +37,7 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
                 const = self.constants[i]
                 #if const == 0:
                  #   const = 1
-                gamma = (self.alphas[i][s]*self.betas[i][s])/const
+                gamma = (self.alphas[i][s]*self.betas[i][s])*const
                 cur_gamma[s] = gamma
                 if s not in self.sum_Gammas:
                     self.sum_Gammas[s] = 0
@@ -65,7 +65,7 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
                 const = self.constants[last_elem]
                 #if const == 0:
                  #   const = 1
-                gamma = (self.alphas[last_elem][s]*self.betas[last_elem][s])/const
+                gamma = (self.alphas[last_elem][s]*self.betas[last_elem][s])*const
                 if s not in self.sum_Gammas_end:
                     self.sum_Gammas_end[s] = 0
                     self.sum_observed_Gammas[s] = {}
