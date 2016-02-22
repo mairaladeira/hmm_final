@@ -8,7 +8,6 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
     sum_Gammas_end = None
     sum_Xis = None
     sum_observed_Gammas = None
-    sum_observed_Gammas_end = None
     iterations = None
 
     def __init__(self, a, b, states, pi, finals, obs, iterations):
@@ -58,7 +57,6 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
             if i == 0:
                 self.init_Gamma = cur_gamma
             self.sum_Gammas_end = self.sum_Gammas.copy()
-            self.sum_observed_Gammas_end = self.sum_observed_Gammas.copy()
             last_elem = len(self.obs)-1
             obs = self.obs[last_elem]
             for s in self.states:
@@ -70,9 +68,9 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
                     self.sum_Gammas_end[s] = 0
                     self.sum_observed_Gammas[s] = {}
                 self.sum_Gammas_end[s] += gamma
-                if obs not in self.sum_observed_Gammas_end[s]:
-                    self.sum_observed_Gammas_end[s][obs] = 0
-                self.sum_observed_Gammas_end[s][obs] += gamma
+                if obs not in self.sum_observed_Gammas[s]:
+                    self.sum_observed_Gammas[s][obs] = 0
+                self.sum_observed_Gammas[s][obs] += gamma
 
     def normalize_params(self, n_a, n_b, n_pi):
         const_pi = 0
@@ -112,7 +110,7 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
                     n_a[s][s2] = self.sum_Xis[s][s2]/self.sum_Gammas[s]
             for obs in possible_obs:
                 if obs in self.sum_observed_Gammas[s] and self.sum_observed_Gammas[s][obs] != 0:
-                    n_b[s][obs] = self.sum_observed_Gammas_end[s][obs]/self.sum_Gammas_end[s]
+                    n_b[s][obs] = self.sum_observed_Gammas[s][obs]/self.sum_Gammas_end[s]
         for s in self.states:
             if n_a[s] == {}:
                 del n_a[s]
@@ -138,6 +136,38 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
         self.A = cur_a
         self.B = cur_b
         self.pi = cur_pi
+        return self.sum_Gammas, self.sum_Xis, self.sum_observed_Gammas, self.sum_Gammas_end
+
+    def multiple_observations(self, list_sum_gammas, list_sum_xis, list_sum_gammas_observed, list_sum_gammas_end):
+        n_a = {}
+        n_b = {}
+        for i in self.states:
+            if i not in n_a:
+                n_a[i] = {}
+                n_b[i] = {}
+            for j in self.states:
+                n_a_top = 0
+                n_a_bottom = 0
+                for k in range(len(list_sum_gammas)):
+                    for t in range(len(list_sum_gammas[k])):
+                        if j in list_sum_xis[k][t][i] and j in list_sum_gammas[k][t][i]:
+                            n_a_top += list_sum_xis[k][t][i][j]
+                            n_a_bottom += list_sum_gammas[k][t][i][j]
+                if n_a_bottom != 0:
+                    n_a[i][j] = n_a_top/n_a_bottom
+            possible_obs = self.get_possible_obs_list()
+            for obs in possible_obs:
+                n_b_top = 0
+                n_b_bottom = 0
+                for k in range(len(list_sum_gammas_end)):
+                    for t in range(len(list_sum_gammas_end[k])):
+                        if obs in list_sum_gammas_observed[k][t][i]:
+                            n_b_top += list_sum_gammas_observed[k][t][i][obs]
+                        if obs in list_sum_gammas_end:
+                            n_b_bottom += list_sum_gammas_end[k][t][i][obs]
+                if n_b_bottom != 0:
+                    n_b[i][obs] = n_b_top/n_b_bottom
+        return n_a, n_b
 
     def __str__(self):
         string = '\tNew initialization probabilities:\n'

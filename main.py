@@ -92,6 +92,10 @@ if __name__ == "__main__":
     emission_matrix = EmissionProbability(e_file)
     obs_obj = Observations(i_file)
     states = trans_matrix.states
+    sum_gammas = []
+    sum_xis = []
+    sum_obs_gammas = []
+    sum_gammas_end = []
     for obs in obs_obj.all:
         bw = BaumWelchAlgorithm(
                 trans_matrix,
@@ -103,6 +107,14 @@ if __name__ == "__main__":
                 max_it)
         bw.print_fw()
         bw.print_viterbi()
-        bw.baum_welch()
+        s_g, s_xi, s_obs_g, s_ge = bw.baum_welch()
+        sum_gammas.append(s_g)
+        sum_xis.append(s_xi)
+        sum_obs_gammas.append(s_obs_g)
+        sum_gammas_end.append(s_ge)
         bw.print_bw()
+    #if len(obs_obj.all) > 1:
+     #   n_a, n_b = bw.multiple_observations(sum_gammas, sum_xis, sum_obs_gammas, sum_gammas_end)
+      #  print(n_a)
+       # print(n_b)
     print('------------------------------------------')
