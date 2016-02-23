@@ -113,8 +113,13 @@ if __name__ == "__main__":
         sum_obs_gammas.append(s_obs_g)
         sum_gammas_end.append(s_ge)
         bw.print_bw()
-    #if len(obs_obj.all) > 1:
-     #   n_a, n_b = bw.multiple_observations(sum_gammas, sum_xis, sum_obs_gammas, sum_gammas_end)
-      #  print(n_a)
-       # print(n_b)
+    if len(obs_obj.all) > 1:
+        n_a, n_b, n_pi = bw.multiple_observations(sum_gammas, sum_xis, sum_obs_gammas, sum_gammas_end)
+        print('\n\tResults for the Multiple observations probability:')
+        print('\tNew initialization:')
+        print('\t'+str(n_pi))
+        print('\tNew transition matrix:')
+        print('\t'+str(n_a))
+        print('\tNew emission matrix:')
+        print('\t'+str(n_b)+'\n')
     print('------------------------------------------')

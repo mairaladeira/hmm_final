@@ -72,13 +72,13 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
                     self.sum_observed_Gammas[s][obs] = 0
                 self.sum_observed_Gammas[s][obs] += gamma
 
-    def normalize_params(self, n_a, n_b, n_pi):
+    def normalize_params(self, n_a, n_b, n_pi=None):
         const_pi = 0
         for s in self.states:
             const_a = 0
             const_b = 0
-            if s in n_pi:
-                const_pi += n_pi[s]
+            if n_pi is not None and s in n_pi:
+                    const_pi += n_pi[s]
             if s in n_a:
                 for s2 in n_a[s]:
                     const_a += n_a[s][s2]
@@ -89,9 +89,10 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
                     const_b += n_b[s][obs]
                 for obs in n_b[s]:
                     n_b[s][obs] /= const_b
-        for s in self.states:
-            if s in n_pi:
-                n_pi[s] /= const_pi
+        if n_pi is not None:
+            for s in self.states:
+                if s in n_pi:
+                    n_pi[s] /= const_pi
         return n_a, n_b, n_pi
 
     def update_params(self, possible_obs):
@@ -149,10 +150,8 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
                 n_a_top = 0
                 n_a_bottom = 0
                 for k in range(len(list_sum_gammas)):
-                    for t in range(len(list_sum_gammas[k])):
-                        if j in list_sum_xis[k][t][i] and j in list_sum_gammas[k][t][i]:
-                            n_a_top += list_sum_xis[k][t][i][j]
-                            n_a_bottom += list_sum_gammas[k][t][i][j]
+                    n_a_top += list_sum_xis[k][i][j]
+                    n_a_bottom += list_sum_gammas[k][i]
                 if n_a_bottom != 0:
                     n_a[i][j] = n_a_top/n_a_bottom
             possible_obs = self.get_possible_obs_list()
@@ -160,14 +159,14 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
                 n_b_top = 0
                 n_b_bottom = 0
                 for k in range(len(list_sum_gammas_end)):
-                    for t in range(len(list_sum_gammas_end[k])):
-                        if obs in list_sum_gammas_observed[k][t][i]:
-                            n_b_top += list_sum_gammas_observed[k][t][i][obs]
-                        if obs in list_sum_gammas_end:
-                            n_b_bottom += list_sum_gammas_end[k][t][i][obs]
-                if n_b_bottom != 0:
+                    if obs in list_sum_gammas_observed[k][i]:
+                        n_b_top += list_sum_gammas_observed[k][i][obs]
+                    n_b_bottom += list_sum_gammas_end[k][i]
+                if n_b_top != 0 and n_b_bottom != 0:
                     n_b[i][obs] = n_b_top/n_b_bottom
-        return n_a, n_b
+
+            n_a, n_b, n_pi = self.normalize_params(n_a, n_b)
+        return n_a, n_b, self.pi
 
     def __str__(self):
         string = '\tNew initialization probabilities:\n'
