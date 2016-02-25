@@ -59,7 +59,7 @@ class TransitionMatrix(object):
         return str(self.trans_mat)
 
 
-class EmissionProbability:
+class EmissionMatrix:
     def __init__(self, file):
         f = open(file, 'r')
         self.emission_probability = {}

@@ -42,13 +42,15 @@ def manual_input():
     while not os.path.isfile(input_file):
         print('File not found!')
         input_file = input('Observations file: ')
-    max_iterations = input('Max number of iterations:')
+    max_iterations = input('Max number of iterations: ')
+    max_iterations = max_iterations.strip()
     print('--------------------------------------------------------------')
     print('--------------------------------------------------------------')
-    return trans_file, emission_file, input_file, max_iterations
+    return trans_file, emission_file, input_file, int(max_iterations)
 
-
+# -t files/phone-init1.trans -e files/phone-init1.emit -i files/phone.input -bw_i 1
 def automatic_input(args):
+    max_iterations = 5
     if args[1] != '-t' or args[3] != '-e' or args[5] != '-i':
         print('Wrong arguments instantiation.')
         print('Correct use: python main.py -t <trans_file>.trans -e <emission_file>.emit -i <input_file>.input -bw_i <max_iterations>')
@@ -89,7 +91,7 @@ if __name__ == "__main__":
         args = sys.argv
         t_file, e_file, i_file, max_it = automatic_input(args)
     trans_matrix = TransitionMatrix(t_file)
-    emission_matrix = EmissionProbability(e_file)
+    emission_matrix = EmissionMatrix(e_file)
     obs_obj = Observations(i_file)
     states = trans_matrix.states
     sum_gammas = []
