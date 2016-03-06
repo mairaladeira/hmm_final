@@ -3,11 +3,8 @@ __author__ = 'Gabriela and Maira'
 
 
 class BaumWelchAlgorithm(ViterbiAlgorithm):
-    init_Gamma = None
-    sum_Gammas = None
-    sum_Gammas_end = None
-    sum_Xis = None
-    sum_observed_Gammas = None
+    gammas = None
+    xis = None
     iterations = None
 
     def __init__(self, a, b, states, pi, finals, obs, iterations):
@@ -26,51 +23,25 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
         return possible_obs
 
     def set_vars(self):
-        self.sum_Gammas = {}
-        self.sum_Xis = {}
-        self.sum_observed_Gammas = {}
-        for i in range(len(self.obs)-1):
+        self.gammas = []
+        self.xis = []
+        for i in range(len(self.obs)):
             cur_gamma = {}
-            obs = self.obs[i]
+            cur_xi = {}
+            const = self.constants[i]
             for s in self.states:
-                const = self.constants[i]
-                #if const == 0:
-                 #   const = 1
-                gamma = (self.alphas[i][s]*self.betas[i][s])/const
-                cur_gamma[s] = gamma
-                if s not in self.sum_Gammas:
-                    self.sum_Gammas[s] = 0
-                    self.sum_observed_Gammas[s] = {}
-                    self.sum_Xis[s] = {}
-                self.sum_Gammas[s] += gamma
-                if obs not in self.sum_observed_Gammas[s]:
-                    self.sum_observed_Gammas[s][obs] = 0
-                self.sum_observed_Gammas[s][obs] += gamma
+                if s not in cur_xi:
+                    cur_xi[s] = {}
+                cur_gamma[s] = (self.alphas[i][s]*self.betas[i][s])/const
                 for ns in self.states:
-                    xi = self.alphas[i][s] * \
-                         self.get_transition_prob(s, ns) * \
-                         self.get_emission_prob(ns, self.obs[i+1]) * \
-                         self.betas[i+1][ns]
-                    if ns not in self.sum_Xis[s]:
-                        self.sum_Xis[s][ns] = 0
-                    self.sum_Xis[s][ns] += xi
-            if i == 0:
-                self.init_Gamma = cur_gamma
-            self.sum_Gammas_end = self.sum_Gammas.copy()
-            last_elem = len(self.obs)-1
-            obs = self.obs[last_elem]
-            for s in self.states:
-                const = self.constants[last_elem]
-                #if const == 0:
-                 #   const = 1
-                gamma = (self.alphas[last_elem][s]*self.betas[last_elem][s])/const
-                if s not in self.sum_Gammas_end:
-                    self.sum_Gammas_end[s] = 0
-                    self.sum_observed_Gammas[s] = {}
-                self.sum_Gammas_end[s] += gamma
-                if obs not in self.sum_observed_Gammas[s]:
-                    self.sum_observed_Gammas[s][obs] = 0
-                self.sum_observed_Gammas[s][obs] += gamma
+                    if i < len(self.obs)-1:
+                        xi = self.alphas[i][s] * \
+                             self.get_transition_prob(s, ns) * \
+                             self.get_emission_prob(ns, self.obs[i+1]) * \
+                             self.betas[i+1][ns]
+                        cur_xi[s][ns] = xi
+            self.gammas.append(cur_gamma)
+            self.xis.append(cur_xi)
 
     def normalize_params(self, n_a, n_b, n_pi=None):
         const_pi = 0
@@ -96,28 +67,34 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
         return n_a, n_b, n_pi
 
     def update_params(self, possible_obs):
-        n_pi = {}
+        n_pi = self.gammas[0]
         n_a = {}
         n_b = {}
-        for s in self.states:
-            # All the comparisons with 0 are to avoid sparse initializations
-            if s in self.init_Gamma and self.init_Gamma != 0:
-                n_pi[s] = self.init_Gamma[s]
-            if s not in n_a:
-                n_a[s] = {}
-                n_b[s] = {}
-            for s2 in self.states:
-                if self.sum_Xis[s][s2] != 0:
-                    n_a[s][s2] = self.sum_Xis[s][s2]/self.sum_Gammas[s]
-            for obs in possible_obs:
-                if obs in self.sum_observed_Gammas[s] and self.sum_observed_Gammas[s][obs] != 0:
-                    n_b[s][obs] = self.sum_observed_Gammas[s][obs]/self.sum_Gammas_end[s]
-        for s in self.states:
-            if n_a[s] == {}:
-                del n_a[s]
-            if n_b[s] == {}:
-                del n_b[s]
+        T = len(self.obs)
+        for i in self.states:
+            for j in self.states:
+                n_a_top = 0
+                n_a_bottom = 0
+                for t in range(T-1):
+                    n_a_top += self.xis[t][i][j]
+                    n_a_bottom += self.gammas[t][i]
+                if n_a_top != 0 and n_a_bottom != 0:
+                    if i not in n_a:
+                        n_a[i] = {}
+                    n_a[i][j] = n_a_top/n_a_bottom
+            for k in possible_obs:
+                n_b_top = 0
+                n_b_bottom = 0
+                for t in range(T):
+                    if k == self.obs[t]:
+                            n_b_top += self.gammas[t][i]
+                    n_b_bottom += self.gammas[t][i]
+                if n_b_top != 0 and n_b_bottom != 0:
+                    if i not in n_b:
+                        n_b[i] = {}
+                    n_b[i][k] = n_b_top/n_b_bottom
         n_a, n_b, n_pi = self.normalize_params(n_a, n_b, n_pi)
+
         return n_pi, n_a, n_b
 
     def baum_welch(self):
@@ -137,9 +114,10 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
         self.A = cur_a
         self.B = cur_b
         self.pi = cur_pi
-        return self.sum_Gammas, self.sum_Xis, self.sum_observed_Gammas, self.sum_Gammas_end
+        return self.alphas, self.betas, self.constants
+        #return self.sum_Gammas, self.sum_Xis, self.sum_observed_Gammas, self.sum_Gammas_end
 
-    def multiple_observations(self, list_sum_gammas, list_sum_xis, list_sum_gammas_observed, list_sum_gammas_end):
+    def multiple_observations(self, list_alphas, list_betas, constants, observations):
         n_a = {}
         n_b = {}
         for i in self.states:
@@ -149,19 +127,24 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
             for j in self.states:
                 n_a_top = 0
                 n_a_bottom = 0
-                for k in range(len(list_sum_gammas)):
-                    n_a_top += list_sum_xis[k][i][j]
-                    n_a_bottom += list_sum_gammas[k][i]
-                if n_a_bottom != 0:
+                for k in range(len(list_alphas)):
+                    for t in range(len(list_alphas[k])-1):
+                        n_a_top += list_alphas[k][t][i]\
+                                   * self.get_transition_prob(i, j)\
+                                   * list_betas[k][t+1][j]\
+                                   * self.get_emission_prob(j, observations[k][t+1])
+                        n_a_bottom += list_alphas[k][t][i]*list_betas[k][t][i]/constants[k][t]
+                if n_a_top != 0 and n_a_bottom != 0:
                     n_a[i][j] = n_a_top/n_a_bottom
             possible_obs = self.get_possible_obs_list()
             for obs in possible_obs:
                 n_b_top = 0
                 n_b_bottom = 0
-                for k in range(len(list_sum_gammas_end)):
-                    if obs in list_sum_gammas_observed[k][i]:
-                        n_b_top += list_sum_gammas_observed[k][i][obs]
-                    n_b_bottom += list_sum_gammas_end[k][i]
+                for k in range(len(list_alphas)):
+                    for t in range(len(list_alphas[k])-1):
+                        if observations[k][t] == obs:
+                            n_b_top += list_alphas[k][t][i]*list_betas[k][t][i]/constants[k][t]
+                        n_b_bottom += list_alphas[k][t][i]*list_betas[k][t][i]/constants[k][t]
                 if n_b_top != 0 and n_b_bottom != 0:
                     n_b[i][obs] = n_b_top/n_b_bottom
 
@@ -182,7 +165,9 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
         print('\tNew initialization probabilities:')
         print('\t'+str(self.pi))
         print('\tNew transition probabilities:')
-        print('\t'+str(self.A))
+        for a in self.A:
+            print('\t\t'+str(a)+': '+str(self.A[a]))
         print('\tNew emission probabilities:')
-        print('\t'+str(self.B))
+        for b in self.B:
+            print('\t\t'+str(b)+': '+str(self.B[b]))
         print('------------------------------------------')
