@@ -18,10 +18,16 @@ class ForwardBackwardAlgorithm(Algorithm):
         previous_alpha = {}
         constants.append(0)
         for s in self.states:
-            previous_alpha[s] = self.pi[s] * self.get_emission_prob(s, self.obs[0])
-            constants[0] += previous_alpha[s]
+            try:
+                previous_alpha[s] = self.pi[s] * self.get_emission_prob(s, self.obs[0])
+                constants[0] += previous_alpha[s]
+            except KeyError:
+                continue
         for s in self.states:
-            previous_alpha_estimated[s] = previous_alpha[s]/constants[0]
+            try:
+                previous_alpha_estimated[s] = previous_alpha[s]/constants[0]
+            except KeyError:
+                continue
         alphas.append(previous_alpha_estimated)
 
         for index in range(1, len(self.obs)):
@@ -45,7 +51,8 @@ class ForwardBackwardAlgorithm(Algorithm):
             alphas.append(current_alpha_estimated)
         f_const = 1
         for c in constants:
-            f_const *= 1/c
+            if c != 0:
+                f_const *= 1/c
         prob = 1/f_const
         self.alphas = alphas
         self.constants = constants
@@ -57,7 +64,8 @@ class ForwardBackwardAlgorithm(Algorithm):
         prev_beta = {}
         const = self.constants[::-1]
         for s in self.states:
-            prev_beta[s] = 1/const[0]
+            if const[0] != 0:
+                prev_beta[s] = 1/const[0]
         betas.append(prev_beta)
         for obs in reversed(self.obs):
             cur_beta = {}
@@ -65,12 +73,19 @@ class ForwardBackwardAlgorithm(Algorithm):
                 for s in self.states:
                     cur_beta[s] = 0.0
                     for s2 in self.states:
-                        val = prev_beta[s2] * \
-                                        self.get_transition_prob(s, s2) * \
-                                        self.get_emission_prob(s2, obs)
-                        cur_beta[s] += val
+                        try:
+                            val = prev_beta[s2] * \
+                                            self.get_transition_prob(s, s2) * \
+                                            self.get_emission_prob(s2, obs)
+                            cur_beta[s] += val
+                        except KeyError:
+                            continue
                 for s in cur_beta:
-                    cur_beta[s] /= const[index]
+                    try:
+                        if const[index] != 0:
+                            cur_beta[s] /= const[index]
+                    except KeyError:
+                        continue
                 prev_beta = cur_beta.copy()
                 betas.append(cur_beta)
                 index += 1
@@ -95,8 +110,8 @@ class ForwardBackwardAlgorithm(Algorithm):
     def print_fw(self):
         print('------------------------------------------')
         print('\tResults from Forward-Backward algorithm:')
-        print('\tAlphas:'+str(self.alphas)+'\t')
-        print('\tBetas:'+str(self.betas)+'\t')
+        #print('\tAlphas:'+str(self.alphas)+'\t')
+        #print('\tBetas:'+str(self.betas)+'\t')
         print('\tObservation:'+str(self.obs)+'\t')
         print('\tP(Observation):'+str(self.prob_obs))
         print('\t--------------')

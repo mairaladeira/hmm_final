@@ -45,8 +45,8 @@ class ViterbiAlgorithm(ForwardBackwardAlgorithm):
                 if deltas[t+1][s] > mp:
                     mp = deltas[t+1][s]
                     ms = s
-            self.path.append(str(self.obs[t])+": "+str(psis[t+1][ms]))
-        self.path.append(str(self.obs[len(self.obs)-1])+": "+str(max_state))
+            self.path.append(str(self.obs[t])+" "+str(psis[t+1][ms]))
+        self.path.append(str(self.obs[len(self.obs)-1])+" "+str(max_state))
         self.prob_path = max_prob/self.prob_obs
 
     def __getitem__(self, item):

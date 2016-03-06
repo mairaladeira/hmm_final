@@ -6,6 +6,7 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
     gammas = None
     xis = None
     iterations = None
+    possible_observations = None
 
     def __init__(self, a, b, states, pi, finals, obs, iterations):
         ViterbiAlgorithm.__init__(self, a, b, states, pi, finals, obs)
@@ -13,13 +14,17 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
         ForwardBackwardAlgorithm.backward(self)
         ViterbiAlgorithm.viterbi(self)
         self.iterations = iterations
+        self.possible_observations = self.get_possible_obs_list()
 
     def get_possible_obs_list(self):
         possible_obs = []
         for s in self.states:
-            for o in self.B[s]:
-                if o not in possible_obs:
-                    possible_obs.append(o)
+            try:
+                for o in self.B[s]:
+                    if o not in possible_obs:
+                        possible_obs.append(o)
+            except KeyError:
+                continue
         return possible_obs
 
     def set_vars(self):
@@ -32,14 +37,17 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
             for s in self.states:
                 if s not in cur_xi:
                     cur_xi[s] = {}
-                cur_gamma[s] = (self.alphas[i][s]*self.betas[i][s])*const
-                for ns in self.states:
-                    if i < len(self.obs)-1:
-                        xi = self.alphas[i][s] * \
-                             self.get_transition_prob(s, ns) * \
-                             self.get_emission_prob(ns, self.obs[i+1]) * \
-                             self.betas[i+1][ns]
-                        cur_xi[s][ns] = xi
+                try:
+                    cur_gamma[s] = (self.alphas[i][s]*self.betas[i][s])*const
+                    for ns in self.states:
+                        if i < len(self.obs)-1:
+                            xi = self.alphas[i][s] * \
+                                 self.get_transition_prob(s, ns) * \
+                                 self.get_emission_prob(ns, self.obs[i+1]) * \
+                                 self.betas[i+1][ns]
+                            cur_xi[s][ns] = xi
+                except KeyError:
+                    continue
             self.gammas.append(cur_gamma)
             self.xis.append(cur_xi)
 
@@ -63,7 +71,8 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
         if n_pi is not None:
             for s in self.states:
                 if s in n_pi:
-                    n_pi[s] /= const_pi
+                    if const_pi != 0:
+                        n_pi[s] /= const_pi
         return n_a, n_b, n_pi
 
     def update_params(self, possible_obs):
@@ -75,33 +84,43 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
             for j in self.states:
                 n_a_top = 0
                 n_a_bottom = 0
-                for t in range(T-1):
-                    n_a_top += self.xis[t][i][j]
-                    n_a_bottom += self.gammas[t][i]
-                if n_a_top != 0 and n_a_bottom != 0:
-                    if i not in n_a:
-                        n_a[i] = {}
-                    n_a[i][j] = n_a_top/n_a_bottom
+                try:
+                    for t in range(T-1):
+                        n_a_top += self.xis[t][i][j]
+                        n_a_bottom += self.gammas[t][i]
+                    if n_a_top != 0 and n_a_bottom != 0:
+                        if i not in n_a:
+                            n_a[i] = {}
+                        n_a[i][j] = n_a_top/n_a_bottom
+                except KeyError:
+                    continue
             for k in possible_obs:
                 n_b_top = 0
                 n_b_bottom = 0
-                for t in range(T):
-                    if k == self.obs[t]:
-                            n_b_top += self.gammas[t][i]
-                    n_b_bottom += self.gammas[t][i]
-                if n_b_top != 0 and n_b_bottom != 0:
-                    if i not in n_b:
-                        n_b[i] = {}
-                    n_b[i][k] = n_b_top/n_b_bottom
+                try:
+                    for t in range(T):
+                        if k == self.obs[t]:
+                                n_b_top += self.gammas[t][i]
+                        n_b_bottom += self.gammas[t][i]
+                    if n_b_top != 0 and n_b_bottom != 0:
+                        if i not in n_b:
+                            n_b[i] = {}
+                        n_b[i][k] = n_b_top/n_b_bottom
+                except KeyError:
+                    continue
         n_a, n_b, n_pi = self.normalize_params(n_a, n_b, n_pi)
-
+        for s in self.states:
+                try:
+                    if n_pi[s] == 0:
+                        del n_pi[s]
+                except KeyError:
+                    continue
         return n_pi, n_a, n_b
 
     def baum_welch(self):
         i = 1
-        possible_obs = self.get_possible_obs_list()
         self.set_vars()
-        cur_pi, cur_a, cur_b = self.update_params(possible_obs)
+        cur_pi, cur_a, cur_b = self.update_params(self.possible_observations)
         while (cur_a != self.A or cur_b != self.B or cur_pi != self.pi) and i < self.iterations:
             self.A = cur_a
             self.B = cur_b
@@ -109,13 +128,12 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
             ForwardBackwardAlgorithm.forward(self)
             ForwardBackwardAlgorithm.backward(self)
             self.set_vars()
-            cur_pi, cur_a, cur_b = self.update_params(possible_obs)
+            cur_pi, cur_a, cur_b = self.update_params(self.possible_observations)
             i += 1
         self.A = cur_a
         self.B = cur_b
         self.pi = cur_pi
         return self.alphas, self.betas, self.constants
-        #return self.sum_Gammas, self.sum_Xis, self.sum_observed_Gammas, self.sum_Gammas_end
 
     def multiple_observations(self, list_alphas, list_betas, constants, observations):
         n_a = {}
@@ -136,8 +154,7 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
                         n_a_bottom += list_alphas[k][t][i]*list_betas[k][t][i]/constants[k][t]
                 if n_a_top != 0 and n_a_bottom != 0:
                     n_a[i][j] = n_a_top/n_a_bottom
-            possible_obs = self.get_possible_obs_list()
-            for obs in possible_obs:
+            for obs in self.possible_observations:
                 n_b_top = 0
                 n_b_bottom = 0
                 for k in range(len(list_alphas)):
@@ -147,6 +164,16 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
                         n_b_bottom += list_alphas[k][t][i]*list_betas[k][t][i]/constants[k][t]
                 if n_b_top != 0 and n_b_bottom != 0:
                     n_b[i][obs] = n_b_top/n_b_bottom
+            for s in self.states:
+                try:
+                    if n_a[s] == {}:
+                        del n_a[s]
+                    if n_b[s] == {}:
+                        del n_b[s]
+                    if self.pi[s] == 0:
+                        del self.pi[s]
+                except KeyError:
+                    continue
 
             n_a, n_b, n_pi = self.normalize_params(n_a, n_b)
         return n_a, n_b, self.pi
