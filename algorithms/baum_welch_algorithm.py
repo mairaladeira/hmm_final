@@ -32,7 +32,7 @@ class BaumWelchAlgorithm(ViterbiAlgorithm):
             for s in self.states:
                 if s not in cur_xi:
                     cur_xi[s] = {}
-                cur_gamma[s] = (self.alphas[i][s]*self.betas[i][s])/const
+                cur_gamma[s] = (self.alphas[i][s]*self.betas[i][s])*const
                 for ns in self.states:
                     if i < len(self.obs)-1:
                         xi = self.alphas[i][s] * \
